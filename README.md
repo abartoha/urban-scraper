@@ -22,11 +22,6 @@ This project is a web scraper designed to scrape and save word definitions from 
     pip install -r requirements.txt
     ```
 
-3. Create an `output` directory (if not already created by the script):
-    ```bash
-    mkdir output
-    ```
-
 ## Usage
 
 Run the script using Python:
