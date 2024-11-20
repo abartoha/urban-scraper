@@ -1,0 +1,29 @@
+
+---
+
+### **.gitignore File**
+
+Here’s a `.gitignore` file to ensure that sensitive or unnecessary files (like logs and generated JSON files) are not tracked in the repository:
+
+```plaintext
+# Logs
+output/error_log.txt
+
+# Output data
+output/*.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment files
+.env
+venv/
+*.env
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
