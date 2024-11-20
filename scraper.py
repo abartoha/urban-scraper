@@ -1,3 +1,5 @@
+import os
+import json
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -21,7 +23,7 @@ def fetch_last_page_link(char):
         "Referer": "https://www.google.com",
     }
     
-    # Add a random sleep between 2 to 10 seconds
+    # Add a random sleep between 2 to 4 seconds
     delay = random.uniform(2, 4)
     time.sleep(delay)
     
@@ -29,7 +31,6 @@ def fetch_last_page_link(char):
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
             # Find the div with aria-label="Pagination"
             pagination_div = soup.find("div", attrs={"aria-label": "Pagination"})
             if pagination_div:
@@ -60,7 +61,7 @@ def scrape_page_for_letter(char, page_num):
         "Referer": "https://www.google.com",
     }
     
-    # Add a random sleep between 2 to 10 seconds
+    # Add a random sleep between 2 to 4 seconds
     delay = random.uniform(2, 4)
     time.sleep(delay)
     
@@ -70,13 +71,20 @@ def scrape_page_for_letter(char, page_num):
             soup = BeautifulSoup(response.text, 'html.parser')
             # Extract the word and word links or any other content you need
             mother_section = soup.select('section.flex-1 div.bg-white.dark\:bg-yankees.p-5.mb-5.rounded-md')[0]
-            words = [{a.text:a['href']} for a in mother_section.find_all('a')]
-            # print(words)
+            words = [{a.text: a['href']} for a in mother_section.find_all('a')]
             return char, page_num, words
         return char, page_num, None
     except Exception as e:
         print(f"Error fetching {url}: {e}")
         return char, page_num, None
+
+def save_to_json(data, letter):
+    """Save data to a JSON file for a given letter."""
+    if not os.path.exists("output"):
+        os.makedirs("output")
+    file_path = os.path.join("output", f"{letter.upper()}.json")
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 def scrape_all_pages_for_letter(char, last_page_number):
     """Scrape all pages for a given character from page 1 to the last page."""
@@ -92,16 +100,15 @@ def scrape_all_pages_for_letter(char, last_page_number):
         for future in tqdm(as_completed(futures), total=len(futures), desc=f"Scraping {char.upper()}"):
             char, page_num, definitions = future.result()
             if definitions:
-                if char not in results:
-                    results[char] = {}
-                results[char][page_num] = definitions
+                results[page_num] = definitions
 
+    # Save results to a JSON file
+    save_to_json(results, char)
     return results
 
 def scrape_all_letters():
     """Scrape all pages for all letters based on the last page number for each letter."""
     characters = [chr(i) for i in range(ord('a'), ord('z') + 1)] + ['*']
-    all_results = {}
 
     # Get the last page for each character first
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -111,13 +118,8 @@ def scrape_all_letters():
             if last_page_number:
                 # Scrape all pages for this letter if a valid last page is found
                 print(f"Scraping all pages for {char.upper()}...")
-                all_results[char] = scrape_all_pages_for_letter(char, last_page_number)
-    
-    return all_results
+                scrape_all_pages_for_letter(char, last_page_number)
 
-# Run the scraper and print results
+# Run the scraper and save results
 if __name__ == "__main__":
-    all_letters_results = scrape_all_letters()
-    for char, pages in all_letters_results.items():
-        for page_num, definitions in pages.items():
-            print(f"{char.upper()} - Page {page_num}: {definitions[:3]}...")
+    scrape_all_letters()
